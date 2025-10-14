@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Where Do Lost Things Go - Kiosk Wireframe</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Courier New', monospace;
+            background: #000;
+            color: #fff;
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+        
+        header {
+            max-width: 1400px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 10;
+        }
+        
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 3s infinite;
+        }
+        
+        @keyframes twinkle {
+            0% { opacity: 0.3; }
+            50% { opacity: 1; }
+            100% { opacity: 0.3; }
+        }
+        
+        .container {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+        
+        .installation-label {
+            font-size: 10px;
+            letter-spacing: 8px;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 15px;
+        }
+        
+        h1 {
+            font-size: 2.5em;
+            font-weight: 300;
+            letter-spacing: 4px;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: rgba(255, 255, 255, 0.6);
+            font-weight: 300;
+        }
+        
+        /* View Toggle */
+        .view-toggle {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 60px;
+        }
+        
+        .view-btn {
+            padding: 12px 32px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            background: transparent;
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .view-btn:hover {
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+        
+        .view-btn.active {
+            background: white;
+            color: black;
+            border-color: white;
+        }
+        
+        /* Content sections */
+        .view-section {
+            display: none;
+        }
+        
+        .view-section.active {
+            display: block;
+        }
+        
+        /* Screen card */
+        .screen-card {
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(10px);
+            padding: 40px;
+            margin-bottom: 60px;
+        }
+        
+        .screen-header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .screen-number {
+            width: 40px;
+            height: 40px;
+            background: white;
+            color: black;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 300;
+            flex-shrink: 0;
+        }
+        
+        .screen-title {
+            font-size: 18px;
+            font-weight: 300;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+        
+        .screen-content {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 60px 40px;
+            text-align: center;
+            min-height: 300px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .screen-main-title {
+            font-size: 3em;
+            font-weight: 300;
+            letter-spacing: 4px;
+            margin-bottom: 30px;
+            font-family: Georgia, serif;
+            font-style: italic;
+        }
+        
+        .screen-text {
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 300;
+            line-height: 1.8;
+            margin-bottom: 20px;
+        }
+        
+        .screen-note {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.4);
+            font-style: italic;
+            margin-top: 20px;
+        }
+        
+        .screen-meta {
+            margin-top: 30px;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.5);
+            font-weight: 300;
+        }
+        
+        /* Three step grid */
+        .step-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .step-card {
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.02);
+            padding: 30px 20px;
+            text-align: center;
+        }
+        
+        .step-label {
+            font-size: 10px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+        
+        .step-desc {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+            font-weight: 300;
+        }
+        
+        /* Drawing interface */
+        .drawing-tools {
+            display: flex;
+            gap: 40px;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .tool-group {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        
+        .tool-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .color-swatch {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .canvas-area {
+            background: #f5f5f5;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-style: italic;
+            margin-bottom: 30px;
+        }
+        
+        .button-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn:hover {
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+        
+        .btn-primary {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .btn-primary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        /* Processing spinner */
+        .spinner {
+            width: 80px;
+            height: 80px;
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 40px 0;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Result grid */
+        .result-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+        
+        .artwork-preview {
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            background: white;
+            padding: 30px;
+            height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-style: italic;
+        }
+        
+        .poem-preview {
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.02);
+            padding: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        
+        .poem-text {
+            font-family: Georgia, serif;
+            font-style: italic;
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.8;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        
+        .poem-author {
+            font-size: 11px;
+            letter-spacing: 2px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+        
+        /* Journey */
+        .journey-step {
+            display: flex;
+            gap: 40px;
+            margin-bottom: 80px;
+        }
+        
+        .journey-icon {
+            flex-shrink: 0;
+            width: 120px;
+            text-align: center;
+        }
+        
+        .icon-circle {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+            font-size: 32px;
+        }
+        
+        .journey-label {
+            font-size: 12px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+        
+        .journey-time {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.4);
+            font-weight: 300;
+        }
+        
+        .journey-content {
+            flex: 1;
+            border-left: 2px solid rgba(255, 255, 255, 0.2);
+            padding-left: 40px;
+            padding-bottom: 60px;
+        }
+        
+        .journey-title {
+            font-size: 20px;
+            font-weight: 300;
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+        }
+        
+        .journey-detail {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 1.8;
+            margin-bottom: 12px;
+            font-weight: 300;
+        }
+        
+        .journey-emotion {
+            margin-top: 20px;
+            padding-top: 20px;
+        }
+        
+        .journey-emotion strong {
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 300;
+        }
+        
+        .journey-emotion em {
+            font-style: italic;
+        }
+        
+        /* Summary box */
+        .summary-box {
+            margin-top: 80px;
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        .summary-title {
+            font-size: 18px;
+            font-weight: 300;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 30px;
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+        }
+        
+        .summary-section-title {
+            font-size: 11px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+        
+        .summary-list {
+            list-style: none;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 2;
+            font-weight: 300;
+        }
+        
+        @media (max-width: 768px) {
+            .step-grid,
+            .result-grid,
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .journey-step {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            .journey-content {
+                border-left: none;
+                border-top: 2px solid rgba(255, 255, 255, 0.2);
+                padding-left: 0;
+                padding-top: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="stars" id="stars"></div>
+    
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <div class="installation-label">Installation</div>
+            <h1>Where Do Lost Things Go</h1>
+            <p class="subtitle">Kiosk Experience Design</p>
+        </header>
+        
+        <!-- View Toggle -->
+        <div class="view-toggle">
+            <button class="view-btn active" onclick="showView('screens')">Screen Flow</button>
+            <button class="view-btn" onclick="showView('journey')">User Journey</button>
+        </div>
+        
+        <!-- Screen Flow Section -->
+        <div id="screens" class="view-section active">
+            <!-- Screen 1 -->
+            <div class="screen-card">
+                <div class="screen-header">
+                    <div class="screen-number">1</div>
+                    <h2 class="screen-title">Attract / Idle State</h2>
+                </div>
+                <div class="screen-content">
+                    <div style="font-size: 48px; margin-bottom: 30px; opacity: 0.3;">✦</div>
+                    <div class="screen-main-title">Where Do Lost Things Go</div>
+                    <div class="screen-text">Touch anywhere to begin</div>
+                    <div class="screen-note">[Soft animation • Previous artworks fade in/out • Stars twinkle]</div>
+                </div>
+                <div class="screen-meta">👋 Loops continuously until interaction detected</div>
+            </div>
+            
+            <!-- Screen 2 -->
+            <div class="screen-card">
+                <div class="screen-header">
+                    <div class="screen-number">2</div>
+                    <h2 class="screen-title">Instructions</h2>
+                </div>
+                <div class="screen-content">
+                    <h3 style="font-size: 2em; font-weight: 300; margin-bottom: 20px;">Begin</h3>
+                    <div class="screen-text" style="margin-bottom: 50px;">
+                        Draw what you've lost. Write what you remember.<br/>
+                        Let it go into the void.
+                    </div>
+                    <div class="step-grid">
+                        <div class="step-card">
+                            <div class="step-label">1. Draw</div>
+                            <div class="step-desc">Use the tablet to draw or write</div>
+                        </div>
+                        <div class="step-card">
+                            <div class="step-label">2. Release</div>
+                            <div class="step-desc">Your work will be projected onto fabric</div>
+                        </div>
+                        <div class="step-card">
+                            <div class="step-label">3. Receive</div>
+                            <div class="step-desc">Take your printed memory</div>
+                        </div>
+                    </div>
+                </div>
+                <div style="text-align: right; margin-top: 30px;">
+                    <button class="btn btn-primary">Continue →</button>
+                </div>
+            </div>
+            
+            <!-- Screen 3 -->
+            <div class="screen-card">
+                <div class="screen-header">
+                    <div class="screen-number">3</div>
+                    <h2 class="screen-title">Drawing Interface</h2>
+                </div>
+                <div class="screen-content" style="padding: 40px;">
+                    <div class="drawing-tools">
+                        <div class="tool-group">
+                            <span class="tool-label">Ink</span>
+                            <div class="color-swatch" style="background: #1a1a1a; border-width: 3px;"></div>
+                            <div class="color-swatch" style="background: #6b7280;"></div>
+                            <div class="color-swatch" style="background: #ef4444;"></div>
+                            <div class="color-swatch" style="background: #3b82f6;"></div>
+                            <div class="color-swatch" style="background: #ffffff;"></div>
+                        </div>
+                        <div class="tool-group">
+                            <span class="tool-label">Weight</span>
+                            <div style="width: 100px; height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px;"></div>
+                        </div>
+                        <button class="btn">Clear</button>
+                    </div>
+                    <div class="canvas-area">Drawing Canvas Area</div>
+                    <div class="button-row">
+                        <button class="btn">← Back</button>
+                        <div style="font-size: 13px; color: rgba(255,255,255,0.5); font-style: italic;">Take your time...</div>
+                        <button class="btn btn-primary">Release →</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Screen 4 -->
+            <div class="screen-card">
+                <div class="screen-header">
+                    <div class="screen-number">4</div>
+                    <h2 class="screen-title">Processing / Projection</h2>
+                </div>
+                <div class="screen-content">
+                    <h3 style="font-size: 2em; font-weight: 300; letter-spacing: 4px; margin-bottom: 40px;">Releasing...</h3>
+                    <div class="spinner"></div>
+                    <div class="screen-text">Your work is being projected</div>
+                    <div class="screen-note">Look at the fabric screen →</div>
+                </div>
+                <div class="screen-meta">📽️ Artwork displays on large fabric projection for 10 seconds</div>
+            </div>
+            
+            <!-- Screen 5 -->
+            <div class="screen-card">
+                <div class="screen-header">
+                    <div class="screen-number">5</div>
+                    <h2 class="screen-title">Result & Print</h2>
+                </div>
+                <div class="screen-content" style="padding: 60px 40px;">
+                    <h3 style="font-size: 2em; font-weight: 300; margin-bottom: 10px;">They Rest Here</h3>
+                    <div class="screen-text" style="margin-bottom: 40px;">What you released has found its place</div>
+                    
+                    <div class="result-grid">
+                        <div class="artwork-preview">[Your Artwork Preview]</div>
+                        <div class="poem-preview">
+                            <div>
+                                <div class="poem-text">
+                                    "In lieu of flowers, I would wish for you to flower.<br/>
+                                    I would wish for you to blossom..."
+                                </div>
+                                <div class="poem-author">— SHAWNA LEMAY</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: center;">
+                        <div style="margin-bottom: 30px; color: rgba(255,255,255,0.7); font-size: 14px;">
+                            🖨️ Printing your memory...
+                        </div>
+                        <button class="btn">Begin Again</button>
+                    </div>
+                </div>
+                <div class="screen-meta">📄 Receipt-style print (5.5" × 8.5") dispenses automatically from table slot</div>
+            </div>
+        </div>
+        
+        <!-- User Journey Section -->
+        <div id="journey" class="view-section">
+            <!-- Step 1 -->
+            <div class="journey-step">
+                <div class="journey-icon">
+                    <div class="icon-circle">✦</div>
+                    <div class="journey-label">Approach</div>
+                    <div class="journey-time">0-30 sec</div>
+                </div>
+                <div class="journey-content">
+                    <h3 class="journey-title">Visitor enters the void</h3>
+                    <div class="journey-detail">• Darkness surrounds them—ambient sound creates cosmic atmosphere</div>
+                    <div class="journey-detail">• White fabric panels cascade through the space like falling stars</div>
+                    <div class="journey-detail">• Warm lamp glow emanates from kiosk table at center</div>
+                    <div class="journey-detail">• Notices title quietly illuminated: "Where Do Lost Things Go"</div>
+                    <div class="journey-emotion">
+                        <strong>Emotional state:</strong> <em>Curious, contemplative, drawn inward</em>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Step 2 -->
+            <div class="journey-step">
+                <div class="journey-icon">
+                    <div class="icon-circle">👋</div>
+                    <div class="journey-label">Engage</div>
+                    <div class="journey-time">30 sec - 1 min</div>
+                </div>
+                <div class="journey-content">
+                    <h3 class="journey-title">Touches the screen</h3>
+                    <div class="journey-detail">• Screen wakes from idle state with soft transition</div>
+                    <div class="journey-detail">• Instructions appear: "Draw what you've lost. Write what you remember."</div>
+                    <div class="journey-detail">• Clear 3-step process: Draw → Release → Receive</div>
+                    <div class="journey-detail">• Understands the ritual—this is a space for letting go</div>
+                    <div class="journey-emotion">
+                        <strong>Emotional state:</strong> <em>Intrigued, slightly vulnerable, ready to open</em>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Step 3 -->
+            <div class="journey-step">
+                <div class="journey-icon">
+                    <div class="icon-circle">🖊️</div>
+                    <div class="journey-label">Create</div>
+                    <div class="journey-time">2-5 min</div>
+                </div>
+                <div class="journey-content">
+                    <h3 class="journey-title">The act of remembering</h3>
+                    <div class="journey-detail">• Draws or writes on the tablet surface under warm lamp light</div>
+                    <div class="journey-detail">• Chooses ink colors, adjusts weight—simple, unobtrusive tools</div>
+                    <div class="journey-detail">• Takes time in contemplation, no rush, no pressure</div>
+                    <div class="journey-detail">• The void space holds them gently—stars twinkle above</div>
+                    <div class="journey-detail">• Interface stays minimal, allowing full immersion in memory</div>
+                    <div class="journey-emotion">
+                        <strong>Emotional state:</strong> <em>Reflective, personal, vulnerable, present</em>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Step 4 -->
+            <div class="journey-step">
+                <div class="journey-icon">
+                    <div class="icon-circle">◦</div>
+                    <div class="journey-label">Release</div>
+                    <div class="journey-time">10-15 sec</div>
+                </div>
+                <div class="journey-content">
+                    <h3 class="journey-title">Into the cosmos</h3>
+                    <div class="journey-detail">• Presses "Release"—the moment of letting go</div>
+                    <div class="journey-detail">• Screen shows processing: "Releasing..."</div>
+                    <div class="journey-detail">• Their artwork appears projected onto the tall white fabric</div>
+                    <div class="journey-detail">• Steps back from kiosk to witness it floating in space</div>
+                    <div class="journey-detail">• The work is suspended, illuminated, released into the void</div>
+                    <div class="journey-emotion">
+                        <strong>Emotional state:</strong> <em>Cathartic, exposed, relieved, lighter</em>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Step 5 -->
+            <div class="journey-step">
+                <div class="journey-icon">
+                    <div class="icon-circle">📄</div>
+                    <div class="journey-label">Receive</div>
+                    <div class="journey-time">30 sec</div>
+                </div>
+                <div class="journey-content">
+                    <h3 class="journey-title">A keepsake emerges</h3>
+                    <div class="journey-detail">• Returns to kiosk as projection fades</div>
+                    <div class="journey-detail">• Screen displays: "They Rest Here"</div>
+                    <div class="journey-detail">• Their artwork paired with a randomly selected poem</div>
+                    <div class="journey-detail">• Printer hums—paper emerges from table slot</div>
+                    <div class="journey-detail">• Takes the printed memory: artwork + poem, quarter-sheet sized</div>
+                    <div class="journey-emotion">
+                        <strong>Emotional state:</strong> <em>Closure, comfort, gratitude, held</em>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Step 6 -->
+            <div class="journey-step">
+                <div class="journey-icon">
+                    <div class="icon-circle">∞</div>
+                    <div class="journey-label">Depart</div>
+                    <div class="journey-time">Variable</div>
+                </div>
+                <div class="journey-content">
+                    <h3 class="journey-title">Carries it forward</h3>
+                    <div class="journey-detail">• Option to "Begin Again" if they wish to continue</div>
+                    <div class="journey-detail">• May linger in the space, watching fabric panels drift</div>
+                    <div class="journey-detail">• Leaves with tangible memory and intangible release</div>
+                    <div class="journey-detail">• The void has held their loss, transformed it, given it back</div>
+                    <div class="journey-emotion">
+                        <strong>Emotional state:</strong> <em>Peaceful, processed, lighter, transformed</em>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Summary -->
+            <div class="summary-box">
+                <h3 class="summary-title">Total Experience Time: 5-8 minutes</h3>
+                <div class="summary-grid">
+                    <div>
+                        <div class="summary-section-title">The Space Holds:</div>
+                        <ul class="summary-list">
+                            <li>• Darkness as comfort, not fear</li>
+                            <li>• Warm light as invitation to vulnerability</li>
+                            <li>• Fabric as witness to what was lost</li>
+                            <li>• Projection as release into the cosmos</li>
+                            <li>• Print as tangible closure</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <div class="summary-section-title">Design Considerations:</div>
+                        <ul class="summary-list">
+                            <li>• Queue management for multiple visitors</li>
+                            <li>• Optional time limits (5-7 min)</li>
+                            <li>• Paper refill alerts</li>
+                            <li>• Content moderation system</li>
+                            <li>• Ambient sound volume control</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Create stars
+        var starsContainer = document.getElementById('stars');
+        for (var i = 0; i < 50; i++) {
+            var star = document.createElement('div');
+            star.className = 'star';
+            star.style.left = Math.random() * 100 + '%';
+            star.style.top = Math.random() * 100 + '%';
+            star.style.animationDelay = Math.random() * 3 + 's';
+            starsContainer.appendChild(star);
+        }
+        
+        // View switching
+        function showView(viewName) {
+            // Hide all views
+            var sections = document.querySelectorAll('.view-section');
+            for (var i = 0; i < sections.length; i++) {
+                sections[i].classList.remove('active');
+            }
+            
+            // Show selected view
+            document.getElementById(viewName).classList.add('active');
+            
+            // Update button states
+            var buttons = document.querySelectorAll('.view-btn');
+            for (var j = 0; j < buttons.length; j++) {
+                buttons[j].classList.remove('active');
+            }
+            
+            // Find and activate the clicked button
+            window.event.target.classList.add('active');
+        }
+    </script>
+</body>
+</html>
+            

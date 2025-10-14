@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gallery Installation - Where Do Lost Things Go</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Courier New', monospace;
+            background: #000;
+            overflow: hidden;
+        }
+        
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        .controls {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            z-index: 100;
+            font-size: 12px;
+            max-width: 300px;
+        }
+        
+        .controls h3 {
+            margin-bottom: 10px;
+            font-size: 14px;
+            letter-spacing: 2px;
+        }
+        
+        .controls p {
+            margin: 5px 0;
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 1.6;
+        }
+        
+        .title {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 10px;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+    
+    <div class="controls">
+        <h3>Index</h3>
+        <p>← → : Rotate view</p>
+        <p>↑ ↓ : Move forward/back</p>
+        <p>Mouse drag : Look around</p>
+        <p style="margin-top: 15px; color: rgba(255, 255, 255, 0.5); font-size: 11px;">
+        </p>
+    </div>
+    
+    <div class="title">WHERE DO LOST THINGS GO</div>
+
+    <script>
+        let scene, camera, renderer;
+        let fabrics = [];
+        let stars = [];
+        let galaxyParticles = [];
+        let centerFabric, kiosk;
+        let cameraRotation = 0;
+        let cameraPosition = { x: 0, z: 15 };
+        
+        const keys = {};
+        
+        function init() {
+            // Scene setup
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000510);
+            scene.fog = new THREE.FogExp2(0x000510, 0.015);
+            
+            // Camera
+            camera = new THREE.PerspectiveCamera(
+                75,
+                window.innerWidth / window.innerHeight,
+                0.1,
+                1000
+            );
+            camera.position.set(0, 1.6, 15);
+            
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0x000510);
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+            
+            // Lighting - cosmic and ethereal
+            const ambientLight = new THREE.AmbientLight(0x5a6f8f, 0.5);
+            scene.add(ambientLight);
+            
+            // Soft blue-white light from above like moonlight
+            const topLight = new THREE.DirectionalLight(0xaabbff, 0.7);
+            topLight.position.set(0, 20, 0);
+            scene.add(topLight);
+            
+            // Warm inviting glow at center kiosk - BRIGHTER
+            const kioskLight = new THREE.PointLight(0xffcc88, 2.5, 20);
+            kioskLight.position.set(0, 2.5, 0);
+            scene.add(kioskLight);
+            
+            // Additional warm lights around kiosk area
+            const warmLight1 = new THREE.PointLight(0xffbb77, 1.2, 12);
+            warmLight1.position.set(2, 3, 2);
+            scene.add(warmLight1);
+            
+            const warmLight2 = new THREE.PointLight(0xffbb77, 1.2, 12);
+            warmLight2.position.set(-2, 3, 2);
+            scene.add(warmLight2);
+            
+            // Soft ground uplighting for ambiance
+            const groundLight = new THREE.PointLight(0xffaa66, 0.8, 15);
+            groundLight.position.set(0, 0.5, 0);
+            scene.add(groundLight);
+            
+            // Additional cosmic point lights
+            const cosmicLight1 = new THREE.PointLight(0x8899ff, 0.4, 30);
+            cosmicLight1.position.set(10, 10, 10);
+            scene.add(cosmicLight1);
+            
+            const cosmicLight2 = new THREE.PointLight(0xaa99ff, 0.4, 30);
+            cosmicLight2.position.set(-10, 10, -10);
+            scene.add(cosmicLight2);
+            
+            // Void floor - deep space
+            const floorGeometry = new THREE.PlaneGeometry(100, 100);
+            const floorMaterial = new THREE.MeshStandardMaterial({
+                color: 0x000510,
+                roughness: 1,
+                metalness: 0.2,
+                emissive: 0x000510,
+                emissiveIntensity: 0.2
+            });
+            const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+            floor.rotation.x = -Math.PI / 2;
+            floor.position.y = 0;
+            scene.add(floor);
+            
+            // Create massive star field
+            createGalaxyStars();
+            
+            // Create nebula-like particles
+            createNebula();
+            
+            // Create cascading white fabric maze
+            createFabricMaze();
+            
+            // Create center kiosk with lamp
+            createKiosk();
+            
+            // Create central long fabric
+            createCenterFabric();
+            
+            // Event listeners
+            window.addEventListener('resize', onWindowResize);
+            document.addEventListener('keydown', (e) => keys[e.key] = true);
+            document.addEventListener('keyup', (e) => keys[e.key] = false);
+            
+            let isDragging = false;
+            let previousMouseX = 0;
+            
+            renderer.domElement.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                previousMouseX = e.clientX;
+            });
+            
+            renderer.domElement.addEventListener('mousemove', (e) => {
+                if (isDragging) {
+                    const deltaX = e.clientX - previousMouseX;
+                    cameraRotation -= deltaX * 0.003;
+                    previousMouseX = e.clientX;
+                }
+            });
+            
+            renderer.domElement.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+            
+            animate();
+        }
+        
+        function createGalaxyStars() {
+            // Create massive star field
+            const starGeometry = new THREE.BufferGeometry();
+            const starVertices = [];
+            const starColors = [];
+            
+            for (let i = 0; i < 3000; i++) {
+                const x = (Math.random() - 0.5) * 200;
+                const y = Math.random() * 100;
+                const z = (Math.random() - 0.5) * 200;
+                
+                starVertices.push(x, y, z);
+                
+                // Star colors - whites, blues, purples
+                const color = new THREE.Color();
+                const rand = Math.random();
+                if (rand > 0.7) {
+                    color.setHex(0xffffff); // White
+                } else if (rand > 0.4) {
+                    color.setHex(0xaabbff); // Blue-white
+                } else {
+                    color.setHex(0xccaaff); // Purple-white
+                }
+                starColors.push(color.r, color.g, color.b);
+            }
+            
+            starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
+            starGeometry.setAttribute('color', new THREE.Float32BufferAttribute(starColors, 3));
+            
+            const starMaterial = new THREE.PointsMaterial({
+                size: 0.15,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.9,
+                blending: THREE.AdditiveBlending
+            });
+            
+            const starField = new THREE.Points(starGeometry, starMaterial);
+            scene.add(starField);
+            stars.push(starField);
+        }
+        
+        function createNebula() {
+            // Create nebula-like particle clouds
+            const nebulaGeometry = new THREE.BufferGeometry();
+            const nebulaVertices = [];
+            const nebulaColors = [];
+            
+            for (let i = 0; i < 500; i++) {
+                const x = (Math.random() - 0.5) * 80;
+                const y = Math.random() * 40 + 5;
+                const z = (Math.random() - 0.5) * 80;
+                
+                nebulaVertices.push(x, y, z);
+                
+                // Nebula colors - purple, blue, pink hues
+                const color = new THREE.Color();
+                const rand = Math.random();
+                if (rand > 0.6) {
+                    color.setHex(0x9966ff); // Purple
+                } else if (rand > 0.3) {
+                    color.setHex(0x6699ff); // Blue
+                } else {
+                    color.setHex(0xff99cc); // Pink
+                }
+                nebulaColors.push(color.r, color.g, color.b);
+            }
+            
+            nebulaGeometry.setAttribute('position', new THREE.Float32BufferAttribute(nebulaVertices, 3));
+            nebulaGeometry.setAttribute('color', new THREE.Float32BufferAttribute(nebulaColors, 3));
+            
+            const nebulaMaterial = new THREE.PointsMaterial({
+                size: 1.5,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.15,
+                blending: THREE.AdditiveBlending
+            });
+            
+            const nebula = new THREE.Points(nebulaGeometry, nebulaMaterial);
+            scene.add(nebula);
+            galaxyParticles.push(nebula);
+        }
+        
+        function createFabricMaze() {
+            // Pure white fabric material with more glow
+            const fabricMaterial = new THREE.MeshStandardMaterial({
+                color: 0xffffff,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.92,
+                roughness: 0.6,
+                metalness: 0.05,
+                emissive: 0xffffff,
+                emissiveIntensity: 0.12
+            });
+            
+            // Create maze-like arrangement of fabric panels
+            const positions = [
+                // Left side fabrics near kiosk
+                { x: -3, z: 0, rotation: 0.3, height: 12 },
+                { x: -4, z: 2, rotation: -0.2, height: 11 },
+                { x: -3.5, z: -2, rotation: 0.4, height: 13 },
+                
+                // Right side fabrics near kiosk
+                { x: 3, z: 0, rotation: -0.3, height: 12 },
+                { x: 4, z: 2, rotation: 0.2, height: 11 },
+                { x: 3.5, z: -2, rotation: -0.4, height: 13 },
+                
+                // Outer maze fabrics
+                { x: -7, z: 10, rotation: 0.4, height: 12 },
+                { x: -9, z: 3, rotation: -0.3, height: 11 },
+                { x: -5, z: -5, rotation: 0.6, height: 13 },
+                { x: 7, z: 10, rotation: -0.4, height: 12 },
+                { x: 9, z: 3, rotation: 0.3, height: 11 },
+                { x: 5, z: -5, rotation: -0.6, height: 13 },
+                { x: 0, z: 12, rotation: 0, height: 14 },
+                { x: -12, z: -10, rotation: 0.5, height: 12 },
+                { x: 12, z: -10, rotation: -0.5, height: 12 },
+                { x: 6, z: -2, rotation: 0.2, height: 13 },
+                { x: -6, z: -2, rotation: -0.2, height: 13 }
+            ];
+            
+            positions.forEach(pos => {
+                const fabricGeometry = new THREE.PlaneGeometry(3.5, pos.height, 12, 25);
+                const fabric = new THREE.Mesh(fabricGeometry, fabricMaterial.clone());
+                
+                fabric.position.set(pos.x, pos.height / 2, pos.z);
+                fabric.rotation.y = pos.rotation;
+                
+                // Add flowing wave to fabric
+                const vertices = fabric.geometry.attributes.position;
+                for (let i = 0; i < vertices.count; i++) {
+                    const y = vertices.getY(i);
+                    const wave = Math.sin(i * 0.4) * 0.15;
+                    vertices.setX(i, vertices.getX(i) + wave);
+                }
+                vertices.needsUpdate = true;
+                
+                fabrics.push(fabric);
+                scene.add(fabric);
+            });
+        }
+        
+        function createKiosk() {
+            const kioskGroup = new THREE.Group();
+            
+            // Large round flat table - warmer, more inviting wood tone
+            const table = new THREE.Mesh(
+                new THREE.CylinderGeometry(1.5, 1.5, 0.1, 64),
+                new THREE.MeshStandardMaterial({ 
+                    color: 0x4a3828, 
+                    roughness: 0.3,
+                    metalness: 0.2
+                })
+            );
+            table.position.y = 1;
+            kioskGroup.add(table);
+            
+            // Table edge glow
+            const tableGlow = new THREE.Mesh(
+                new THREE.TorusGeometry(1.5, 0.02, 16, 100),
+                new THREE.MeshBasicMaterial({
+                    color: 0xffbb77,
+                    transparent: true,
+                    opacity: 0.6
+                })
+            );
+            tableGlow.position.y = 1;
+            tableGlow.rotation.x = Math.PI / 2;
+            kioskGroup.add(tableGlow);
+            
+            // Table leg/base
+            const tableLeg = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.3, 0.4, 1, 32),
+                new THREE.MeshStandardMaterial({ 
+                    color: 0x2a2a2a, 
+                    roughness: 0.4,
+                    metalness: 0.6
+                })
+            );
+            tableLeg.position.y = 0.5;
+            kioskGroup.add(tableLeg);
+            
+            // Base foot
+            const base = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.5, 0.6, 0.15, 32),
+                new THREE.MeshStandardMaterial({ 
+                    color: 0x1a1a1a, 
+                    roughness: 0.3,
+                    metalness: 0.7
+                })
+            );
+            base.position.y = 0.08;
+            kioskGroup.add(base);
+            
+            // Flat screen on table surface - large tablet with WARM glow
+            const screen = new THREE.Mesh(
+                new THREE.BoxGeometry(1.8, 1.2, 0.02),
+                new THREE.MeshStandardMaterial({
+                    color: 0x1a1a1a,
+                    emissive: 0x4a3828,
+                    emissiveIntensity: 0.8,
+                    roughness: 0.1
+                })
+            );
+            screen.position.set(0, 1.06, 0);
+            screen.rotation.x = -Math.PI / 2; // Flat on table
+            kioskGroup.add(screen);
+            
+            // Screen display glow - warmer, more inviting
+            const screenGlow = new THREE.Mesh(
+                new THREE.PlaneGeometry(1.7, 1.1),
+                new THREE.MeshBasicMaterial({
+                    color: 0xffddaa,
+                    transparent: true,
+                    opacity: 0.5
+                })
+            );
+            screenGlow.position.set(0, 1.07, 0);
+            screenGlow.rotation.x = -Math.PI / 2;
+            kioskGroup.add(screenGlow);
+            
+            // Elegant desk lamp on table edge
+            const lampBase = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.08, 0.1, 0.05, 16),
+                new THREE.MeshStandardMaterial({ 
+                    color: 0x3a3a3a, 
+                    metalness: 0.9,
+                    roughness: 0.2
+                })
+            );
+            lampBase.position.set(1, 1.08, 0.8);
+            kioskGroup.add(lampBase);
+            
+            // Lamp arm
+            const lampArm = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.02, 0.02, 0.6, 16),
+                new THREE.MeshStandardMaterial({ 
+                    color: 0x3a3a3a, 
+                    metalness: 0.8 
+                })
+            );
+            lampArm.position.set(1, 1.4, 0.8);
+            lampArm.rotation.z = -0.3;
+            kioskGroup.add(lampArm);
+            
+            // Lamp shade with warm INVITING glow - BRIGHTER
+            const lampShade = new THREE.Mesh(
+                new THREE.ConeGeometry(0.18, 0.25, 16),
+                new THREE.MeshStandardMaterial({ 
+                    color: 0xffcc88,
+                    emissive: 0xffaa55,
+                    emissiveIntensity: 2.0
+                })
+            );
+            lampShade.position.set(1.15, 1.65, 0.8);
+            lampShade.rotation.z = 0.2;
+            kioskGroup.add(lampShade);
+            
+            // Lamp light cone/beam effect
+            const lampBeam = new THREE.Mesh(
+                new THREE.ConeGeometry(0.8, 1.2, 16, 1, true),
+                new THREE.MeshBasicMaterial({
+                    color: 0xffcc88,
+                    transparent: true,
+                    opacity: 0.15,
+                    side: THREE.DoubleSide
+                })
+            );
+            lampBeam.position.set(1.15, 1.2, 0.8);
+            lampBeam.rotation.z = 0.2;
+            kioskGroup.add(lampBeam);
+            
+            // Printer output slot on table edge
+            const printerSlot = new THREE.Mesh(
+                new THREE.BoxGeometry(0.5, 0.05, 0.02),
+                new THREE.MeshStandardMaterial({ 
+                    color: 0x0a0a0a,
+                    emissive: 0x444444,
+                    emissiveIntensity: 0.3,
+                    metalness: 0.5
+                })
+            );
+            printerSlot.position.set(-1.2, 1.05, 0);
+            printerSlot.rotation.y = Math.PI / 2;
+            kioskGroup.add(printerSlot);
+            
+            // Printer output tray below slot
+            const printerTray = new THREE.Mesh(
+                new THREE.BoxGeometry(0.4, 0.02, 0.25),
+                new THREE.MeshStandardMaterial({ 
+                    color: 0x2a2a2a,
+                    roughness: 0.4,
+                    metalness: 0.6
+                })
+            );
+            printerTray.position.set(-1.25, 1.0, 0);
+            kioskGroup.add(printerTray);
+            
+            kioskGroup.position.set(0, 0, 0);
+            scene.add(kioskGroup);
+            kiosk = kioskGroup;
+        }
+        
+        function createCenterFabric() {
+            // Long pure white central fabric
+            const centerMaterial = new THREE.MeshStandardMaterial({
+                color: 0xffffff,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.95,
+                roughness: 0.6,
+                metalness: 0.05,
+                emissive: 0xffffff,
+                emissiveIntensity: 0.08
+            });
+            
+            const centerGeometry = new THREE.PlaneGeometry(5, 14, 20, 40);
+            centerFabric = new THREE.Mesh(centerGeometry, centerMaterial);
+            
+            centerFabric.position.set(0, 7, -3);
+            
+            // Add elegant flowing wave
+            const vertices = centerFabric.geometry.attributes.position;
+            for (let i = 0; i < vertices.count; i++) {
+                const y = vertices.getY(i);
+                const wave = Math.sin(i * 0.2) * 0.2;
+                vertices.setZ(i, vertices.getZ(i) + wave);
+            }
+            vertices.needsUpdate = true;
+            
+            scene.add(centerFabric);
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Camera controls
+            if (keys['ArrowLeft']) cameraRotation += 0.02;
+            if (keys['ArrowRight']) cameraRotation -= 0.02;
+            
+            if (keys['ArrowUp']) {
+                cameraPosition.x -= Math.sin(cameraRotation) * 0.1;
+                cameraPosition.z -= Math.cos(cameraRotation) * 0.1;
+            }
+            if (keys['ArrowDown']) {
+                cameraPosition.x += Math.sin(cameraRotation) * 0.1;
+                cameraPosition.z += Math.cos(cameraRotation) * 0.1;
+            }
+            
+            // Update camera
+            camera.position.x = cameraPosition.x;
+            camera.position.z = cameraPosition.z;
+            camera.rotation.y = cameraRotation;
+            
+            const time = Date.now() * 0.0003;
+            
+            // Animate fabrics - gentle cosmic sway
+            fabrics.forEach((fabric, index) => {
+                fabric.rotation.y += Math.sin(time + index) * 0.0002;
+                fabric.position.y += Math.sin(time * 2 + index) * 0.001;
+            });
+            
+            // Animate center fabric
+            if (centerFabric) {
+                centerFabric.rotation.y = Math.sin(time * 0.3) * 0.03;
+            }
+            
+            // Rotate star field slowly
+            stars.forEach(star => {
+                star.rotation.y += 0.0001;
+            });
+            
+            // Drift nebula
+            galaxyParticles.forEach(particle => {
+                particle.rotation.y += 0.0002;
+            });
+            
+            renderer.render(scene, camera);
+        }
+        
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        
+        init();
+    </script>
+</body>
+</html>

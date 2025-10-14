@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Where Do Lost Things Go</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0a0a0a;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            color: #e0e0e0;
+            overflow-x: hidden;
+        }
+        
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 3s infinite;
+        }
+        
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .container {
+            background: rgba(20, 20, 20, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0;
+            box-shadow: 0 0 60px rgba(255, 255, 255, 0.05);
+            max-width: 1000px;
+            width: 100%;
+            position: relative;
+            z-index: 1;
+            backdrop-filter: blur(10px);
+        }
+        
+        .page {
+            display: none;
+            padding: 60px 40px;
+            animation: fadeIn 0.8s ease;
+        }
+        
+        .page.active {
+            display: block;
+        }
+        
+        .installation-title {
+            text-align: center;
+            font-size: 0.9em;
+            letter-spacing: 8px;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.4);
+            margin-bottom: 40px;
+            font-weight: 300;
+        }
+        
+        h1 {
+            color: #ffffff;
+            margin-bottom: 15px;
+            font-size: 2.5em;
+            font-weight: 300;
+            text-align: center;
+            letter-spacing: 2px;
+        }
+        
+        .subtitle {
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 50px;
+            font-size: 1em;
+            text-align: center;
+            font-weight: 300;
+            line-height: 1.6;
+        }
+        
+        .canvas-container {
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 30px;
+            background: #ffffff;
+            position: relative;
+            box-shadow: 0 0 40px rgba(255, 255, 255, 0.1);
+        }
+        
+        canvas {
+            display: block;
+            cursor: crosshair;
+            touch-action: none;
+            width: 100%;
+            height: auto;
+        }
+        
+        .tools {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.02);
+        }
+        
+        .tool-group {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        
+        button {
+            background: transparent;
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 12px 28px;
+            border-radius: 0;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 300;
+            transition: all 0.3s;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        
+        button:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.6);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+        }
+        
+        button:active {
+            transform: scale(0.98);
+        }
+        
+        .color-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            cursor: pointer;
+            transition: all 0.3s;
+            padding: 0;
+            position: relative;
+        }
+        
+        .color-btn::after {
+            content: '';
+            position: absolute;
+            inset: -6px;
+            border: 1px solid transparent;
+            border-radius: 50%;
+            transition: all 0.3s;
+        }
+        
+        .color-btn:hover::after {
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+        
+        .color-btn.active::after {
+            border-color: rgba(255, 255, 255, 0.8);
+        }
+        
+        input[type="range"] {
+            width: 120px;
+            cursor: pointer;
+            accent-color: #ffffff;
+        }
+        
+        .poem-container {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 40px;
+            margin-bottom: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .poem-container::before {
+            content: '"';
+            position: absolute;
+            top: 10px;
+            left: 20px;
+            font-size: 80px;
+            color: rgba(255, 255, 255, 0.1);
+            font-family: Georgia, serif;
+        }
+        
+        .poem-text {
+            font-size: 1.2em;
+            line-height: 2;
+            color: #ffffff;
+            white-space: pre-line;
+            font-style: italic;
+            font-family: Georgia, serif;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .poem-author {
+            text-align: center;
+            margin-top: 30px;
+            color: rgba(255, 255, 255, 0.5);
+            font-weight: 300;
+            letter-spacing: 2px;
+            font-size: 0.9em;
+        }
+        
+        .result-artwork {
+            max-width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 40px;
+            box-shadow: 0 0 40px rgba(255, 255, 255, 0.1);
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .primary-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.5);
+            padding: 16px 40px;
+            font-size: 15px;
+        }
+        
+        .primary-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.8);
+        }
+        
+        label {
+            font-weight: 300;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.85em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .instruction {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 0.85em;
+            margin-top: 20px;
+            font-weight: 300;
+            letter-spacing: 1px;
+        }
+        
+        .loading {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.9em;
+            letter-spacing: 2px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 1; }
+        }
+
+        @media (max-width: 768px) {
+            .page {
+                padding: 40px 20px;
+            }
+            
+            h1 {
+                font-size: 1.8em;
+            }
+            
+            .installation-title {
+                font-size: 0.7em;
+                letter-spacing: 4px;
+            }
+        }
+
+        .music-toggle {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 12px 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 12px;
+            letter-spacing: 1px;
+        }
+
+        .music-toggle:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.6);
+        }
+
+        .music-toggle.playing {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="stars" id="stars"></div>
+    
+    <button class="music-toggle" id="musicToggle" onclick="toggleMusic()">
+        ♪ Sound Off
+    </button>
+    
+    <div class="container">
+        <!-- Page 1: Drawing Canvas -->
+        <div class="page active" id="drawPage">
+            <div class="installation-title">Where Do Lost Things Go</div>
+            <h1>Begin</h1>
+            <p class="subtitle">Draw what you've lost. Write what you remember.<br>Let it go into the void.</p>
+            
+            <div class="tools">
+                <div class="tool-group">
+                    <label>Ink</label>
+                    <button class="color-btn active" style="background: #1a1a1a;" data-color="#1a1a1a"></button>
+                    <button class="color-btn" style="background: #6b7280;" data-color="#6b7280"></button>
+                    <button class="color-btn" style="background: #ef4444;" data-color="#ef4444"></button>
+                    <button class="color-btn" style="background: #3b82f6;" data-color="#3b82f6"></button>
+                    <button class="color-btn" style="background: #ffffff;" data-color="#ffffff"></button>
+                </div>
+                
+                <div class="tool-group">
+                    <label>Weight</label>
+                    <input type="range" id="brushSize" min="1" max="20" value="2">
+                </div>
+                
+                <button onclick="clearCanvas()">Clear</button>
+            </div>
+            
+            <div class="canvas-container">
+                <canvas id="drawCanvas" width="900" height="600"></canvas>
+            </div>
+            
+            <button onclick="submitArtwork()" class="primary-btn" style="width: 100%;">
+                Release →
+            </button>
+        </div>
+        
+        <!-- Page 2: Result -->
+        <div class="page" id="resultPage">
+            <div class="installation-title">Where Do Lost Things Go</div>
+            <h1>They Rest Here</h1>
+            <p class="subtitle">What you released has found its place</p>
+            
+            <img id="resultArtwork" class="result-artwork" />
+            
+            <div class="poem-container">
+                <div class="poem-text" id="poemText"></div>
+                <div class="poem-author" id="poemAuthor"></div>
+            </div>
+            
+            <div class="action-buttons">
+                <button onclick="downloadPDF()" class="primary-btn">Preserve This Memory</button>
+                <button onclick="startOver()">Begin Again</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+   // Audio system for background music
+let audio = null;
+let isPlaying = false;
+
+function initMusic() {
+    if (audio) return;
+    
+    // Your audio file in the same folder
+ audio = new Audio('file:///Users/tanwhy/Desktop/SCHOOL/senior seminar/crit1/audio.mp3');
+    audio.loop = true;
+    audio.volume = 0.3; // Adjust volume (0.0 to 1.0)
+    
+    // Preload the audio
+    audio.load();
+}
+
+async function toggleMusic() {
+    const btn = document.getElementById('musicToggle');
+    
+    if (!audio) {
+        initMusic();
+    }
+    
+    if (!isPlaying) {
+        try {
+            await audio.play();
+            isPlaying = true;
+            btn.textContent = '♪ Sound On';
+            btn.classList.add('playing');
+        } catch (err) {
+            console.error('Audio play failed:', err);
+            alert('Could not play audio. Make sure audio.mp3 is in the same folder as this HTML file.');
+        }
+    } else {
+        audio.pause();
+        isPlaying = false;
+        btn.textContent = '♪ Sound Off';
+        btn.classList.remove('playing');
+    }
+}
+
+        // Create stars
+        const starsContainer = document.getElementById('stars');
+        for (let i = 0; i < 100; i++) {
+            const star = document.createElement('div');
+            star.className = 'star';
+            star.style.left = Math.random() * 100 + '%';
+            star.style.top = Math.random() * 100 + '%';
+            star.style.animationDelay = Math.random() * 3 + 's';
+            starsContainer.appendChild(star);
+        }
+
+        const poems = [
+            {
+                text: `In lieu of flowers, please take a friend or loved one out for lunch.
+Buy a book of poetry, sit outside with tea, and read it out loud.
+Spend time with a single flower. Really look at it.
+Walk in the trees and watch the light fall into it.
+In lieu of flowers, I would wish for you to flower.
+I would wish for you to blossom, to open, to be beautiful.`,
+                author: "Shawna Lemay, In Lieu of Flowers"
+            },
+            {
+                text: `Death is nothing at all.
+I have only slipped away into the next room.
+Whatever we were to each other,
+That, we still are.`,
+                author: "Henry Scott Holland"
+            },
+            {
+                text: `Do not stand at my grave and weep,
+I am not there, I do not sleep.
+I am in a thousand winds that blow,
+I am the softly falling snow.`,
+                author: "Mary Elizabeth Frye"
+            },
+            {
+                text: `What we have once enjoyed we can never lose.
+All that we love deeply becomes a part of us.`,
+                author: "Helen Keller"
+            },
+            {
+                text: `They that love beyond the world cannot be separated by it.
+Death cannot kill what never dies.`,
+                author: "William Penn"
+            },
+            {
+                text: `Grief is the price we pay for love.`,
+                author: "Queen Elizabeth II"
+            },
+            {
+                text: `Perhaps they are not stars in the sky,
+but rather openings where our loved ones
+shine down to let us know they are happy.`,
+                author: "Eskimo Legend"
+            },
+            {
+                text: `The reality is that you will grieve forever.
+You will not 'get over' the loss of a loved one;
+you will learn to live with it.
+You will heal and you will rebuild yourself
+around the loss you have suffered.`,
+                author: "Elizabeth Kübler-Ross"
+            },
+            {
+                text: `And ever has it been known that love knows not its own depth
+until the hour of separation.`,
+                author: "Kahlil Gibran"
+            },
+            {
+                text: `Unable are the loved to die, for love is immortality.`,
+                author: "Emily Dickinson"
+            },
+            {
+                text: `What is lovely never dies,
+But passes into other loveliness.`,
+                author: "Thomas Bailey Aldrich"
+            },
+            {
+                text: `To live in hearts we leave behind
+Is not to die.`,
+                author: "Thomas Campbell"
+            },
+            {
+                text: `Those we love don't go away,
+they walk beside us every day.
+Unseen, unheard, but always near,
+still loved, still missed, and very dear.`,
+                author: "Anonymous"
+            },
+            {
+                text: `The song is ended, but the melody lingers on.`,
+                author: "Irving Berlin"
+            },
+            {
+                text: `Grief never ends, but it changes.
+It is a passage, not a place to stay.
+Grief is not a sign of weakness,
+nor a lack of faith.
+It is the price of love.`,
+                author: "Anonymous"
+            },
+            {
+                text: `Hope is the thing with feathers
+That perches in the soul,
+And sings the tune without the words,
+And never stops at all.`,
+                author: "Emily Dickinson"
+            },
+            {
+                text: `In the night of death, hope sees a star,
+and listening love can hear the rustle of a wing.`,
+                author: "Robert Green Ingersoll"
+            },
+            {
+                text: `When someone you love becomes a memory,
+the memory becomes a treasure.`,
+                author: "Anonymous"
+            },
+            {
+                text: `There is a sacredness in tears.
+They are not the mark of weakness, but of power.
+They speak more eloquently than ten thousand tongues.`,
+                author: "Washington Irving"
+            }
+        ];
+
+        let currentPoem = null;
+        let artworkDataURL = null;
+
+        // Canvas setup
+        const canvas = document.getElementById('drawCanvas');
+        const ctx = canvas.getContext('2d');
+        let isDrawing = false;
+        let currentColor = '#1a1a1a';
+        let brushSize = 2;
+
+        // Initialize canvas
+        ctx.fillStyle = '#fafafa';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        // Color selection
+        document.querySelectorAll('.color-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentColor = this.dataset.color;
+            });
+        });
+
+        // Brush size
+        document.getElementById('brushSize').addEventListener('input', function() {
+            brushSize = this.value;
+        });
+
+        // Drawing functions
+        function getCoordinates(e) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            
+            let clientX, clientY;
+            if (e.touches && e.touches[0]) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+            
+            return {
+                x: (clientX - rect.left) * scaleX,
+                y: (clientY - rect.top) * scaleY
+            };
+        }
+
+        function startDrawing(e) {
+            isDrawing = true;
+            const coords = getCoordinates(e);
+            ctx.beginPath();
+            ctx.moveTo(coords.x, coords.y);
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            e.preventDefault();
+            
+            const coords = getCoordinates(e);
+            ctx.strokeStyle = currentColor;
+            ctx.lineWidth = brushSize;
+            ctx.lineTo(coords.x, coords.y);
+            ctx.stroke();
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+            ctx.beginPath();
+        }
+
+        // Mouse events
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
+
+        // Touch events
+        canvas.addEventListener('touchstart', startDrawing);
+        canvas.addEventListener('touchmove', draw);
+        canvas.addEventListener('touchend', stopDrawing);
+
+        function clearCanvas() {
+            ctx.fillStyle = '#fafafa';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function submitArtwork() {
+            // Save artwork
+            artworkDataURL = canvas.toDataURL('image/png');
+            
+            // Select random poem
+            currentPoem = poems[Math.floor(Math.random() * poems.length)];
+            
+            // Display result
+            document.getElementById('resultArtwork').src = artworkDataURL;
+            document.getElementById('poemText').textContent = currentPoem.text;
+            document.getElementById('poemAuthor').textContent = `— ${currentPoem.author}`;
+            
+            // Switch pages with slight delay for effect
+            setTimeout(() => {
+                document.getElementById('drawPage').classList.remove('active');
+                document.getElementById('resultPage').classList.add('active');
+            }, 300);
+        }
+
+        function downloadPDF() {
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: [140, 216] // Quarter sheet size (5.5" x 8.5")
+            });
+            
+            const pageWidth = 140;
+            const pageHeight = 216;
+            
+            // Soft background
+            pdf.setFillColor(252, 252, 252);
+            pdf.rect(0, 0, pageWidth, pageHeight, 'F');
+            
+            // Minimal background graphics - subtle circles
+            pdf.setDrawColor(240, 240, 240);
+            pdf.setLineWidth(0.3);
+            pdf.circle(20, 30, 15, 'S');
+            pdf.circle(pageWidth - 20, pageHeight - 40, 20, 'S');
+            pdf.circle(pageWidth / 2, pageHeight - 20, 10, 'S');
+            
+            // Very subtle dots
+            pdf.setFillColor(245, 245, 245);
+            pdf.circle(30, pageHeight - 30, 2, 'F');
+            pdf.circle(pageWidth - 30, 50, 2, 'F');
+            pdf.circle(pageWidth / 2 + 30, 40, 1.5, 'F');
+            pdf.circle(pageWidth / 2 - 30, pageHeight - 50, 1.5, 'F');
+            
+            // Add artwork - centered, no border
+            const imgWidth = 100;
+            const imgHeight = (canvas.height / canvas.width) * imgWidth;
+            const imgX = (pageWidth - imgWidth) / 2;
+            const imgY = 40;
+            
+            pdf.addImage(artworkDataURL, 'PNG', imgX, imgY, imgWidth, imgHeight);
+            
+            // Subtle divider - just a small centered line
+            const dividerY = imgY + imgHeight + 15;
+            pdf.setDrawColor(220, 220, 220);
+            pdf.setLineWidth(0.2);
+            pdf.line(pageWidth / 2 - 15, dividerY, pageWidth / 2 + 15, dividerY);
+            
+            // Add poem - clean and centered
+            const poemY = dividerY + 12;
+            pdf.setFontSize(9);
+            pdf.setFont(undefined, 'italic');
+            pdf.setTextColor(80, 80, 80);
+            
+            const lines = pdf.splitTextToSize(currentPoem.text, 110);
+            let currentY = poemY;
+            lines.forEach(line => {
+                pdf.text(line, pageWidth / 2, currentY, { align: 'center' });
+                currentY += 5;
+            });
+            
+            // Author - minimal styling
+            currentY += 4;
+            pdf.setFont(undefined, 'normal');
+            pdf.setFontSize(7);
+            pdf.setTextColor(140, 140, 140);
+            pdf.text(`— ${currentPoem.author}`, pageWidth / 2, currentY, { align: 'center' });
+            
+            // Very subtle footer element - just a small dot
+            pdf.setFillColor(230, 230, 230);
+            pdf.circle(pageWidth / 2, pageHeight - 15, 1, 'F');
+            
+            // Download
+            pdf.save('memory-' + Date.now() + '.pdf');
+        }
+
+        function startOver() {
+            clearCanvas();
+            document.getElementById('resultPage').classList.remove('active');
+            document.getElementById('drawPage').classList.add('active');
+        }
+    </script>
+</body>
+</html>
