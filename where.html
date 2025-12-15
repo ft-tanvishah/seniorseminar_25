@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Where Do Lost Things Go</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0a0a0a;
+            color: #e0e0e0;
+            overflow-x: hidden;
+        }
+        
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 3s infinite;
+        }
+        
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(10, 10, 10, 0.95);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 20px 40px;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+        }
+        
+        .logo {
+            font-size: 0.8em;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 30px;
+        }
+        
+        .nav-links a {
+            color: rgba(255, 255, 255, 0.6);
+            text-decoration: none;
+            font-size: 0.85em;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            transition: all 0.3s;
+            padding: 8px 16px;
+            border: 1px solid transparent;
+        }
+        
+        .nav-links a:hover,
+        .nav-links a.active {
+            color: #ffffff;
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+        
+        /* Pages */
+        .page {
+            display: none;
+            min-height: 100vh;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .page.active {
+            display: block;
+            animation: fadeIn 0.8s ease;
+        }
+        
+        /* Gallery Page */
+        #gallery-page {
+            height: 100vh;
+            position: relative;
+        }
+        
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .gallery-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            pointer-events: none;
+            z-index: 10;
+        }
+        
+        .gallery-overlay h1 {
+            font-size: 3em;
+            font-weight: 300;
+            letter-spacing: 4px;
+            margin-bottom: 20px;
+            color: #ffffff;
+            text-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+        }
+        
+        .gallery-overlay p {
+            font-size: 1.1em;
+            color: rgba(255, 255, 255, 0.8);
+            letter-spacing: 2px;
+            text-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+        }
+        
+        .enter-btn {
+            margin-top: 40px;
+            pointer-events: all;
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            padding: 16px 50px;
+            font-size: 15px;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .enter-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
+        }
+        
+        .controls {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            font-size: 12px;
+            max-width: 300px;
+        }
+        
+        .controls h3 {
+            margin-bottom: 10px;
+            font-size: 14px;
+            letter-spacing: 2px;
+        }
+        
+        .controls p {
+            margin: 5px 0;
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 1.6;
+        }
+        
+        /* Game Page */
+        #game-page {
+            padding-top: 80px;
+        }
+        
+        .container {
+            background: rgba(20, 20, 20, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 60px rgba(255, 255, 255, 0.05);
+            max-width: 1000px;
+            width: 100%;
+            margin: 0 auto 40px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .game-section {
+            display: none;
+            padding: 60px 40px;
+            animation: fadeIn 0.8s ease;
+        }
+        
+        .game-section.active {
+            display: block;
+        }
+        
+        .installation-title {
+            text-align: center;
+            font-size: 0.9em;
+            letter-spacing: 8px;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.4);
+            margin-bottom: 40px;
+            font-weight: 300;
+        }
+        
+        h1 {
+            color: #ffffff;
+            margin-bottom: 15px;
+            font-size: 2.5em;
+            font-weight: 300;
+            text-align: center;
+            letter-spacing: 2px;
+        }
+        
+        .subtitle {
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 50px;
+            font-size: 1em;
+            text-align: center;
+            font-weight: 300;
+            line-height: 1.6;
+        }
+        
+        .canvas-container {
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 30px;
+            background: #ffffff;
+            box-shadow: 0 0 40px rgba(255, 255, 255, 0.1);
+        }
+        
+        canvas {
+            display: block;
+            cursor: crosshair;
+            touch-action: none;
+            width: 100%;
+            height: auto;
+        }
+        
+        .tools {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.02);
+        }
+        
+        .tool-group {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        
+        button {
+            background: transparent;
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 12px 28px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 300;
+            transition: all 0.3s;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        
+        button:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.6);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+        }
+        
+        .color-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            cursor: pointer;
+            transition: all 0.3s;
+            padding: 0;
+            position: relative;
+        }
+        
+        .color-btn::after {
+            content: '';
+            position: absolute;
+            inset: -6px;
+            border: 1px solid transparent;
+            border-radius: 50%;
+            transition: all 0.3s;
+        }
+        
+        .color-btn:hover::after {
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+        
+        .color-btn.active::after {
+            border-color: rgba(255, 255, 255, 0.8);
+        }
+        
+        input[type="range"] {
+            width: 120px;
+            cursor: pointer;
+            accent-color: #ffffff;
+        }
+        
+        .poem-container {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 40px;
+            margin-bottom: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+        
+        .poem-container::before {
+            content: '"';
+            position: absolute;
+            top: 10px;
+            left: 20px;
+            font-size: 80px;
+            color: rgba(255, 255, 255, 0.1);
+            font-family: Georgia, serif;
+        }
+        
+        .poem-text {
+            font-size: 1.2em;
+            line-height: 2;
+            color: #ffffff;
+            white-space: pre-line;
+            font-style: italic;
+            font-family: Georgia, serif;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .poem-author {
+            text-align: center;
+            margin-top: 30px;
+            color: rgba(255, 255, 255, 0.5);
+            font-weight: 300;
+            letter-spacing: 2px;
+            font-size: 0.9em;
+        }
+        
+        .result-artwork {
+            max-width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 40px;
+            box-shadow: 0 0 40px rgba(255, 255, 255, 0.1);
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .primary-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.5);
+            padding: 16px 40px;
+            font-size: 15px;
+        }
+        
+        label {
+            font-weight: 300;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.85em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        /* About Page */
+        #about-page {
+            padding: 120px 40px 80px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .about-content {
+            animation: fadeIn 0.8s ease;
+        }
+        
+        .about-content h1 {
+            margin-bottom: 30px;
+        }
+        
+        .about-content h2 {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 1.5em;
+            font-weight: 300;
+            margin: 50px 0 20px;
+            letter-spacing: 2px;
+        }
+        
+        .about-content p {
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 2;
+            margin-bottom: 25px;
+            font-size: 1.05em;
+        }
+        
+        .about-content ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        .about-content li {
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 2;
+            margin-bottom: 15px;
+            padding-left: 30px;
+            position: relative;
+        }
+        
+        .about-content li::before {
+            content: '→';
+            position: absolute;
+            left: 0;
+            color: rgba(255, 255, 255, 0.4);
+        }
+        
+        @media (max-width: 768px) {
+            nav {
+                padding: 15px 20px;
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .nav-links {
+                gap: 15px;
+            }
+            
+            .gallery-overlay h1 {
+                font-size: 2em;
+            }
+            
+            .game-section,
+            #about-page {
+                padding: 40px 20px;
+            }
+            
+            h1 {
+                font-size: 1.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="stars" id="stars"></div>
+    
+    <nav>
+        <div class="logo">Where Do Lost Things Go</div>
+        <div class="nav-links">
+            <a href="#" onclick="showPage('gallery')" class="active">Gallery</a>
+            <a href="#" onclick="showPage('game')">Experience</a>
+            <a href="#" onclick="showPage('about')">About</a>
+        </div>
+    </nav>
+    
+    <!-- Gallery/Walkthrough Page -->
+    <div class="page active" id="gallery-page">
+        <div id="canvas-container"></div>
+        
+        <div class="gallery-overlay">
+            <h1>Where Do Lost Things Go</h1>
+            <p>An interactive installation about memory and grief</p>
+            <button class="enter-btn" onclick="showPage('game')">Enter the Experience →</button>
+        </div>
+        
+        <div class="controls">
+            <h3>Navigation</h3>
+            <p>← → : Rotate view</p>
+            <p>↑ ↓ : Move forward/back</p>
+            <p>Mouse drag : Look around</p>
+        </div>
+    </div>
+    
+    <!-- Game Page -->
+    <div class="page" id="game-page">
+        <div class="container">
+            <!-- Drawing Section -->
+            <div class="game-section active" id="drawSection">
+                <div class="installation-title">Where Do Lost Things Go</div>
+                <h1>Begin</h1>
+                <p class="subtitle">Draw what you've lost. Write what you remember.<br>Let it go into the void.</p>
+                
+                <div class="tools">
+                    <div class="tool-group">
+                        <label>Ink</label>
+                        <button class="color-btn active" style="background: #1a1a1a;" data-color="#1a1a1a"></button>
+                        <button class="color-btn" style="background: #6b7280;" data-color="#6b7280"></button>
+                        <button class="color-btn" style="background: #ef4444;" data-color="#ef4444"></button>
+                        <button class="color-btn" style="background: #3b82f6;" data-color="#3b82f6"></button>
+                        <button class="color-btn" style="background: #ffffff;" data-color="#ffffff"></button>
+                    </div>
+                    
+                    <div class="tool-group">
+                        <label>Weight</label>
+                        <input type="range" id="brushSize" min="1" max="20" value="2">
+                    </div>
+                    
+                    <button onclick="clearCanvas()">Clear</button>
+                </div>
+                
+                <div class="canvas-container">
+                    <canvas id="drawCanvas" width="900" height="600"></canvas>
+                </div>
+                
+                <button onclick="submitArtwork()" class="primary-btn" style="width: 100%;">
+                    Release →
+                </button>
+            </div>
+            
+            <!-- Result Section -->
+            <div class="game-section" id="resultSection">
+                <div class="installation-title">Where Do Lost Things Go</div>
+                <h1>They Rest Here</h1>
+                <p class="subtitle">What you released has found its place</p>
+                
+                <img id="resultArtwork" class="result-artwork" />
+                
+                <div class="poem-container">
+                    <div class="poem-text" id="poemText"></div>
+                    <div class="poem-author" id="poemAuthor"></div>
+                </div>
+                
+                <div class="action-buttons">
+                    <button onclick="downloadPDF()" class="primary-btn">Preserve This Memory</button>
+                    <button onclick="startOver()">Begin Again</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- About Page -->
+    <div class="page" id="about-page">
+        <div class="about-content">
+            <h1>About the Installation</h1>
+            
+            <p><em>Where Do Lost Things Go</em> is an interactive digital installation that explores themes of grief, memory, and letting go. Visitors are invited to create a visual representation of something they've lost—a person, a relationship, a moment in time—and release it into a cosmic void.</p>
+            
+            <h2>The Experience</h2>
+            <p>The installation exists in three phases:</p>
+            <ul>
+                <li><strong>The Gallery</strong> — A contemplative virtual space with cascading white fabrics and a central kiosk, preparing visitors for the emotional work ahead</li>
+                <li><strong>The Creation</strong> — An intimate drawing canvas where visitors express their loss through marks, words, and color</li>
+                <li><strong>The Release</strong> — The artwork is paired with poetry about loss and remembrance, offering comfort and a sense of completion</li>
+            </ul>
+            
+            <h2>Concept</h2>
+            <p>This work emerged from questions about where our memories go when we lose someone or something precious. The act of drawing becomes a ritual—a way to honor what was lost while accepting that some things cannot be held onto forever.</p>
+            
+            <p>The white fabrics in the virtual gallery represent the liminal space between holding on and letting go, while the cosmic void suggests that what we release doesn't disappear—it transforms into something else, somewhere else.</p>
+            
+            <h2>Technical Notes</h2>
+            <p>Built with HTML5 Canvas, Three.js for 3D rendering, and jsPDF for memory preservation. The poems are drawn from works about grief, loss, and remembrance by various poets and writers.</p>
+            
+            <h2>Preservation</h2>
+            <p>Visitors can download a PDF of their creation—a keepsake that acknowledges both the importance of memory and the necessity of release. The printed artifact becomes a tangible reminder that we can honor what we've lost without being consumed by it.</p>
+        </div>
+    </div>
+
+    <script>
+        // Create stars
+        const starsContainer = document.getElementById('stars');
+        for (let i = 0; i < 100; i++) {
+            const star = document.createElement('div');
+            star.className = 'star';
+            star.style.left = Math.random() * 100 + '%';
+            star.style.top = Math.random() * 100 + '%';
+            star.style.animationDelay = Math.random() * 3 + 's';
+            starsContainer.appendChild(star);
+        }
+
+        // Page navigation
+        function showPage(pageName) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
+            
+            const pageMap = {
+                'gallery': 'gallery-page',
+                'game': 'game-page',
+                'about': 'about-page'
+            };
+            
+            document.getElementById(pageMap[pageName]).classList.add('active');
+            event.target.classList.add('active');
+            
+            // Initialize gallery if needed
+            if (pageName === 'gallery' && !galleryInitialized) {
+                initGallery();
+            }
+        }
+
+        // Three.js Gallery Setup
+        let scene, camera, renderer, galleryInitialized = false;
+        let fabrics = [], stars3D = [], galaxyParticles = [];
+        let cameraRotation = 0, cameraPosition = { x: 0, z: 15 };
+        const keys = {};
+
+        function initGallery() {
+            if (galleryInitialized) return;
+            galleryInitialized = true;
+
+            const container = document.getElementById('canvas-container');
+            
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000510);
+            scene.fog = new THREE.FogExp2(0x000510, 0.015);
+            
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 1.6, 15);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            container.appendChild(renderer.domElement);
+            
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x5a6f8f, 0.5);
+            scene.add(ambientLight);
+            
+            const topLight = new THREE.DirectionalLight(0xaabbff, 0.7);
+            topLight.position.set(0, 20, 0);
+            scene.add(topLight);
+            
+            const kioskLight = new THREE.PointLight(0xffcc88, 2.5, 20);
+            kioskLight.position.set(0, 2.5, 0);
+            scene.add(kioskLight);
+            
+            // Floor
+            const floor = new THREE.Mesh(
+                new THREE.PlaneGeometry(100, 100),
+                new THREE.MeshStandardMaterial({ color: 0x000510, roughness: 1 })
+            );
+            floor.rotation.x = -Math.PI / 2;
+            scene.add(floor);
+            
+            createGalaxyStars();
+            createFabricMaze();
+            createKiosk();
+            
+            document.addEventListener('keydown', (e) => keys[e.key] = true);
+            document.addEventListener('keyup', (e) => keys[e.key] = false);
+            
+            let isDragging = false, previousMouseX = 0;
+            renderer.domElement.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                previousMouseX = e.clientX;
+            });
+            renderer.domElement.addEventListener('mousemove', (e) => {
+                if (isDragging) {
+                    cameraRotation -= (e.clientX - previousMouseX) * 0.003;
+                    previousMouseX = e.clientX;
+                }
+            });
+            renderer.domElement.addEventListener('mouseup', () => isDragging = false);
+            
+            animateGallery();
+        }
+
+        function createGalaxyStars() {
+            const geometry = new THREE.BufferGeometry();
+            const vertices = [], colors = [];
+            
+            for (let i = 0; i < 3000; i++) {
+                vertices.push(
+                    (Math.random() - 0.5) * 200,
+                    Math.random() * 100,
+                    (Math.random() - 0.5) * 200
+                );
+                const color = new THREE.Color(Math.random() > 0.5 ? 0xffffff : 0xaabbff);
+                colors.push(color.r, color.g, color.b);
+            }
+            
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+            geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+            
+            const material = new THREE.PointsMaterial({
+                size: 0.15,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.9
+            });
+            
+            const starField = new THREE.Points(geometry, material);
+            scene.add(starField);
+            stars3D.push(starField);
+        }
+
+        function createFabricMaze() {
+            const material = new THREE.MeshStandardMaterial({
+                color: 0xffffff,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.92,
+                emissive: 0xffffff,
+                emissiveIntensity: 0.12
+            });
+            
+            const positions = [
+                { x: -3, z: 0, rotation: 0.3, height: 12 },
+                { x: 3, z: 0, rotation: -0.3, height: 12 },
+                { x: -7, z: 10, rotation: 0.4, height: 12 },
+                { x: 7, z: 10, rotation: -0.4, height: 12 },
+                { x: 0, z: 12, rotation: 0, height: 14 }
+            ];
+            
+            positions.forEach(pos => {
+                const fabric = new THREE.Mesh(
+                    new THREE.PlaneGeometry(3.5, pos.height, 12, 25),
+                    material.clone()
+                );
+                fabric.position.set(pos.x, pos.height / 2, pos.z);
+                fabric.rotation.y = pos.rotation;
+                fabrics.push(fabric);
+                scene.add(fabric);
+            });
+        }
+
+        function createKiosk() {
+            const group = new THREE.Group();
+            
+            const table = new THREE.Mesh(
+                new THREE.CylinderGeometry(1.5, 1.5, 0.1, 64),
+                new THREE.MeshStandardMaterial({ color: 0x4a3828 })
+            );
+            table.position.y = 1;
+            group.add(table);
+            
+            const screen = new THREE.Mesh(
+                new THREE.BoxGeometry(1.8, 1.2, 0.02),
+                new THREE.MeshStandardMaterial({
+                    color: 0x1a1a1a,
+                    emissive: 0xffddaa,
+                    emissiveIntensity: 0.8
+                })
+            );
+            screen.position.set(0, 1.06, 0);
+            screen.rotation.x = -Math.PI / 2;
+            group.add(screen);
+            
+            scene.add(group);
+        }
+
+        function animateGallery() {
+            requestAnimationFrame(animateGallery);
+            
+            if (keys['ArrowLeft']) cameraRotation += 0.02;
+            if (keys['ArrowRight']) cameraRotation -= 0.02;
+            if (keys['ArrowUp']) {
+                cameraPosition.x -= Math.sin(cameraRotation) * 0.1;
+                cameraPosition.z -= Math.cos(cameraRotation) * 0.1;
+            }
+            if (keys['ArrowDown']) {
+                cameraPosition.x += Math.sin(cameraRotation) * 0.1;
+                cameraPosition.z += Math.cos(cameraRotation) * 0.1;
+            }
+            
+            camera.position.x = cameraPosition.x;
+            camera.position.z = cameraPosition.z;
+            camera.rotation.y = cameraRotation;
+            
+            const time = Date.now() * 0.0003;
+            fabrics.forEach((fabric, i) => {
+                fabric.rotation.y += Math.sin(time + i) * 0.0002;
+            });
+            stars3D.forEach(star => star.rotation.y += 0.0001);
+            
+            renderer.render(scene, camera);
+        }
+
+        // Drawing Canvas Setup
+        const poems = [
+            { text: `In lieu of flowers, please take a friend or loved one out for lunch.\nBuy a book of poetry, sit outside with tea, and read it out loud.\nSpend time with a single flower. Really look at it.\nWalk in the trees and watch the light fall into it.\nIn lieu of flowers, I would wish for you to flower.\nI would wish for you to blossom, to open, to be beautiful.`, author: "Shawna Lemay, In Lieu of Flowers" },
+            { text: `Do not stand at my grave and weep,\nI am not there, I do not sleep.\nI am in a thousand winds that blow,\nI am the softly falling snow.`, author: "Mary Elizabeth Frye" },
+            { text: `What we have once enjoyed we can never lose.\nAll that we love deeply becomes a part of us.`, author: "Helen Keller" },
+            { text: `Perhaps they are not stars in the sky,\nbut rather openings where our loved ones\nshine down to let us know they are happy.`, author: "Eskimo Legend" },
+            { text: `Grief is the price we pay for love.`, author: "Queen Elizabeth II" },
+            { text: `Unable are the loved to die, for love is immortality.`, author: "Emily Dickinson" },
+            { text: `To live in hearts we leave behind\nIs not to die.`, author: "Thomas Campbell" },
+            { text: `Those we love don't go away,\nthey walk beside us every day.`, author: "Anonymous" },
+            { text: `When someone you love becomes a memory,\nthe memory becomes a treasure.`, author: "Anonymous" }
+        ];
+
+        let currentPoem = null;
+        let artworkDataURL = null;
+        const canvas = document.getElementById('drawCanvas');
+        const ctx = canvas.getContext('2d');
+        let isDrawing = false;
+        let currentColor = '#1a1a1a';
+        let brushSize = 2;
+
+        // Initialize canvas
+        ctx.fillStyle = '#fafafa';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        // Color selection
+        document.querySelectorAll('.color-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentColor = this.dataset.color;
+            });
+        });
+
+        // Brush size
+        document.getElementById('brushSize').addEventListener('input', function() {
+            brushSize = this.value;
+        });
+
+        // Drawing functions
+        function getCoordinates(e) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            
+            let clientX, clientY;
+            if (e.touches && e.touches[0]) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+            
+            return {
+                x: (clientX - rect.left) * scaleX,
+                y: (clientY - rect.top) * scaleY
+            };
+        }
+
+        function startDrawing(e) {
+            isDrawing = true;
+            const coords = getCoordinates(e);
+            ctx.beginPath();
+            ctx.moveTo(coords.x, coords.y);
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            e.preventDefault();
+            
+            const coords = getCoordinates(e);
+            ctx.strokeStyle = currentColor;
+            ctx.lineWidth = brushSize;
+            ctx.lineTo(coords.x, coords.y);
+            ctx.stroke();
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+            ctx.beginPath();
+        }
+
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
+        canvas.addEventListener('touchstart', startDrawing);
+        canvas.addEventListener('touchmove', draw);
+        canvas.addEventListener('touchend', stopDrawing);
+
+        function clearCanvas() {
+            ctx.fillStyle = '#fafafa';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function submitArtwork() {
+            artworkDataURL = canvas.toDataURL('image/png');
+            currentPoem = poems[Math.floor(Math.random() * poems.length)];
+            
+            document.getElementById('resultArtwork').src = artworkDataURL;
+            document.getElementById('poemText').textContent = currentPoem.text;
+            document.getElementById('poemAuthor').textContent = `— ${currentPoem.author}`;
+            
+            setTimeout(() => {
+                document.getElementById('drawSection').classList.remove('active');
+                document.getElementById('resultSection').classList.add('active');
+            }, 300);
+        }
+
+        function downloadPDF() {
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: [140, 216]
+            });
+            
+            const pageWidth = 140;
+            const pageHeight = 216;
+            
+            pdf.setFillColor(252, 252, 252);
+            pdf.rect(0, 0, pageWidth, pageHeight, 'F');
+            
+            pdf.setDrawColor(240, 240, 240);
+            pdf.setLineWidth(0.3);
+            pdf.circle(20, 30, 15, 'S');
+            pdf.circle(pageWidth - 20, pageHeight - 40, 20, 'S');
+            
+            const imgWidth = 100;
+            const imgHeight = (canvas.height / canvas.width) * imgWidth;
+            const imgX = (pageWidth - imgWidth) / 2;
+            const imgY = 40;
+            
+            pdf.addImage(artworkDataURL, 'PNG', imgX, imgY, imgWidth, imgHeight);
+            
+            const dividerY = imgY + imgHeight + 15;
+            pdf.setDrawColor(220, 220, 220);
+            pdf.setLineWidth(0.2);
+            pdf.line(pageWidth / 2 - 15, dividerY, pageWidth / 2 + 15, dividerY);
+            
+            const poemY = dividerY + 12;
+            pdf.setFontSize(9);
+            pdf.setFont(undefined, 'italic');
+            pdf.setTextColor(80, 80, 80);
+            
+            const lines = pdf.splitTextToSize(currentPoem.text, 110);
+            let currentY = poemY;
+            lines.forEach(line => {
+                pdf.text(line, pageWidth / 2, currentY, { align: 'center' });
+                currentY += 5;
+            });
+            
+            currentY += 4;
+            pdf.setFont(undefined, 'normal');
+            pdf.setFontSize(7);
+            pdf.setTextColor(140, 140, 140);
+            pdf.text(`— ${currentPoem.author}`, pageWidth / 2, currentY, { align: 'center' });
+            
+            pdf.save('memory-' + Date.now() + '.pdf');
+        }
+
+        function startOver() {
+            clearCanvas();
+            document.getElementById('resultSection').classList.remove('active');
+            document.getElementById('drawSection').classList.add('active');
+        }
+
+        window.addEventListener('resize', () => {
+            if (renderer) {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+        });
+    </script>
+</body>
+</html>
